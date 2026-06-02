@@ -1,0 +1,18 @@
+model_list:
+  # Ollama (local)
+  - model_name: qwen3:1.7b
+    litellm_params:
+      model: ollama/qwen3:1.7b
+      api_base: http://ollama:11434
+
+  # vLLM (local)
+  - model_name: qwen3.5:2b
+    litellm_params:
+      model: openai/qwen3.5:9b
+      api_base: http://vllm:8000/v1
+
+  # # Fallback (API Externa)
+  # - model_name: gpt_fallback
+  #   litellm_params:
+  #     model: openai/gpt-4o-mini
+  #     api_key: os.environ/OPENAI_API_KEY
