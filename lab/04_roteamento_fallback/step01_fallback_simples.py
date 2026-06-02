@@ -48,7 +48,10 @@ def main() -> None:
         "Authorization": f"Bearer {master_key}",
     }
 
-    response = requests.post(url, json=data, headers=headers, timeout=60)
+    print(f"Enviando request ao modelo: {model}")
+    print(f"URL: {url}")
+    response = requests.post(url, json=data, headers=headers, timeout=180)
+    print("Request concluído. Status:", response.status_code)
 
     print("STATUS:", response.status_code)
     try:

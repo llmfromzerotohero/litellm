@@ -15,7 +15,7 @@ def main() -> None:
 
     chat_url = get_chat_url()
 
-    print("LiteLLM routing + fallback demo (blank line to quit)")
+    print("LiteLLM routing + fallback demo (aperte enter para sair)")
 
     while True:
         user_input = input("Prompt: ").strip()
@@ -33,7 +33,7 @@ def main() -> None:
             "messages": messages,
         }
 
-        response = requests.post(chat_url, headers=headers, json=data, timeout=60)
+        response = requests.post(chat_url, headers=headers, json=data, timeout=200)
 
         print("ROUTE_REASON:", reason)
         print("MODEL:", model)
