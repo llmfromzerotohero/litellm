@@ -141,8 +141,6 @@ def main() -> None:
     except Exception as e:
         print(f"[ERRO] Falha na conexão: {e}")
 
-    print("\n[INFO] Fim dos testes do Sênior. Prossiga para o passo 4 de auditoria.")
-
 
 if __name__ == "__main__":
     main()
