@@ -3,11 +3,11 @@ from pathlib import Path
 import re
 import requests
 
-MODEL_CODE = "qwen3.5:4b"
-MODEL_SHORT = "qwen3:1.7b"
-MODEL_LONG = "qwen3.5:2b"
+MODEL_CODE = "qwen3.5:2b"
+MODEL_SHORT = "qwen3:0.6b"
+MODEL_LONG = "qwen3:1.7b"
 
-TOKEN_THRESHOLD = 400
+TOKEN_THRESHOLD = 100
 
 KEYWORDS = {
     "python",
@@ -108,7 +108,11 @@ def main() -> None:
             break
 
         messages = [
-            {"role": "user", "content": user_input}
+            {
+                "role": "system",
+                "content": "Responda de forma concisa.",
+            },
+            {"role": "user", "content": user_input},
         ]
 
         model, reason = route_model(messages)
@@ -118,7 +122,10 @@ def main() -> None:
             "messages": messages,
         }
 
-        response = requests.post(chat_url, headers=headers, json=data, timeout=60)
+        print(f"Enviando request ao modelo: {model}")
+        print(f"URL: {chat_url}")
+        response = requests.post(chat_url, headers=headers, json=data, timeout=300)
+        print("Request concluído. Status:", response.status_code)
 
         print("ROUTE_REASON:", reason)
         print("MODEL:", model)

@@ -73,7 +73,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--model",
-        default="qwen3.5:2b",
+        default="qwen3.5:9b",
         help="Model name no LiteLLM (primario vLLM).",
     )
     args = parser.parse_args()
