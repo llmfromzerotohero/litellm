@@ -11,6 +11,22 @@ model_list:
   #     model: gemini/gemini-1.5-flash
   #     api_key: os.environ/GEMINI_API_KEY
 
+  
+  # vLLM (local)
+  - model_name: qwen3.5:9b
+    litellm_params:
+      model: openai/qwen3.5:9b
+      api_base: http://vllm:8000/v1
+      input_cost_per_token: 0.0000030     # $3.00 por milhão de tokens
+      output_cost_per_token: 0.0000045    # $4.50 por milhão de tokens
+  
+  - model_name: qwen3.5:2b
+    litellm_params:
+      model: openai/Qwen/Qwen3.5-2B
+      api_base: http://vllm:8000/v1
+      input_cost_per_token: 0.0000010     # $1.00 por milhão de tokens
+      output_cost_per_token: 0.0000025    # $2.50 por milhão de tokens
+  
   # Ollama (local)
   - model_name: qwen3:1.7b
     litellm_params:
@@ -33,32 +49,30 @@ model_list:
       input_cost_per_token: 0.0000002     # $0.20 por milhão de tokens
       output_cost_per_token: 0.0000003    # $0.30 por milhão de tokens
   
-  # - model_name: qwen3:4b
-  #   litellm_params:
-  #     model: ollama/qwen3:4b
-  #     api_base: http://ollama:11434
-  
-  # vLLM (local)
-  - model_name: qwen3.5:9b
+  # Grupo de modelos para demonstração de Roteamento por Latência Mínima
+  - model_name: modelo-latencia
     litellm_params:
-      model: openai/qwen3.5:9b
-      api_base: http://vllm:8000/v1
-      input_cost_per_token: 0.0000030     # $3.00 por milhão de tokens
-      output_cost_per_token: 0.0000045    # $4.50 por milhão de tokens
-  
-  - model_name: qwen3.5:2b
+      model: ollama/qwen3:0.6b
+      api_base: http://ollama:11434
+    model_info:
+      id: qwen3-0.6b-fast
+
+  - model_name: modelo-latencia
     litellm_params:
-      model: openai/Qwen/Qwen3.5-2B
-      api_base: http://vllm:8000/v1
-      input_cost_per_token: 0.0000010     # $1.00 por milhão de tokens
-      output_cost_per_token: 0.0000025    # $2.50 por milhão de tokens
-  
+      model: ollama/qwen3:1.7b
+      api_base: http://ollama:11434
+    model_info:
+      id: qwen3-1.7b-slow
 
 litellm_settings:
   success_callback: ["langfuse"]   # opcional: observabilidade
   store_model_in_db: true
 
 router_settings:
+  routing_strategy: latency-based-routing
+  routing_strategy_args:
+    lowest_latency_buffer: 0.1
+    ttl: 30
   fallbacks:
     - {"gemma3:1b": ["qwen3:1.7b"]}
     - {"qwen3.5:4b": ["qwen3:1.7b"]}

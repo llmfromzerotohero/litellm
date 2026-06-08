@@ -7,10 +7,11 @@ Este lab cobre roteamento baseado em regras no cliente e fallback automatico no 
 
 ## Objetivo
 
-- Demonstrar fallback automatico quando o modelo primario falha.
+- Demonstrar fallback automático quando o modelo primário falha.
 - Demonstrar roteamento por regras no cliente (palavras-chave e tamanho do prompt).
+- Demonstrar roteamento inteligente nativo por latência mínima (`latency-based-routing`) no proxy LiteLLM.
 
-## Sequencia sugerida
+## Sequência sugerida
 
 ### 1) Fallback simples
 
@@ -18,15 +19,15 @@ Este lab cobre roteamento baseado em regras no cliente e fallback automatico no 
 python step01_fallback_simples.py
 ```
 
-Esse script chama `gemma3:1b` (com `api_base` invalido no config) e confirma o fallback para `qwen3:1.7b`.
+Esse script chama `gemma3:1b` (com `api_base` inválido no config) e confirma o fallback para `qwen3:1.7b`.
 
-### 2) Fallback via vLLM (primario) -> Ollama (fallback)
+### 2) Fallback via vLLM (primário) -> Ollama (fallback)
 
 ```bash
-python step02_vllm_fallback.py --question "O que e vLLM?"
+python step02_vllm_fallback.py --question "O que é vLLM?"
 ```
 
-Se o vLLM estiver indisponivel, o LiteLLM aciona o fallback para um modelo Ollama configurado.
+Se o vLLM estiver indisponível, o LiteLLM aciona o fallback para um modelo Ollama configurado.
 
 ### 3) Roteamento por regras (cliente)
 
@@ -34,16 +35,19 @@ Se o vLLM estiver indisponivel, o LiteLLM aciona o fallback para um modelo Ollam
 python step03_router_regras.py
 ```
 
-Regras aplicadas:
+Regras aplicadas no lado do cliente:
+- Palavras-chave de tecnologia -> `qwen3.5:2b`
+- Prompt curto -> `qwen3:0.6b`
+- Prompt longo -> `qwen3:1.7b`
 
-- palavras-chave de tecnologia -> `qwen3.5:4b`
-- prompt curto -> `qwen3:1.7b`
-- prompt longo -> `qwen3.5:2b`
-
-### 4) Roteamento + fallback interativo
+### 4) Roteamento por Latência Mínima (LiteLLM Native)
 
 ```bash
-python step04_router_interativo.py
+python step04_roteamento_latencia.py
 ```
 
-Esse fluxo usa as mesmas regras da etapa 3 e imprime `FALLBACK_USED` quando o proxy entrega um modelo diferente do solicitado.
+Esse fluxo demonstra o roteamento inteligente no LiteLLM Proxy. Ao agrupar múltiplos modelos sob o alias `modelo-latencia` e configurar a estratégia `latency-based-routing` no `config.yaml`, o proxy monitora o tempo de resposta e direciona as requisições para o deployment mais rápido.
+
+O script executa 6 requisições consecutivas e exibe os seguintes cabeçalhos retornados pelo proxy para validar o comportamento:
+- `x-litellm-model-id`: Mostra qual modelo resolveu a requisição (espera-se que priorize `qwen3-0.6b-fast` por ser menor e mais rápido que `qwen3-1.7b-slow`).
+- `x-litellm-model-api-base`: Endpoint correspondente utilizado.
