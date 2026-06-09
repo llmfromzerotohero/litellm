@@ -7,7 +7,7 @@ MODEL_CODE = "qwen3.5:2b"
 MODEL_SHORT = "qwen3:0.6b"
 MODEL_LONG = "qwen3:1.7b"
 
-TOKEN_THRESHOLD = 100
+TOKEN_THRESHOLD = 50
 
 KEYWORDS = {
     "python",
