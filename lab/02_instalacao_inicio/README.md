@@ -12,12 +12,11 @@ Você aprenderá a instalar o LiteLLM (tanto como SDK quanto como Proxy/Gateway)
 
 Antes de começar, certifique-se de ter os seguintes requisitos configurados e ativos em sua máquina:
 
-1. **Python 3.9+** instalado.
+1. **Python 3.12+** instalado.
 2. Um **Ambiente Virtual Python (venv)** criado e ativado.
 3. **Ollama** instalado e em execução no seu sistema.
 4. Modelos do Ollama baixados localmente (ex: `qwen3:1.7b`).
 
-> [!TIP]
 > Você pode verificar a versão e o funcionamento do Ollama rodando o seguinte comando no terminal (com seu ambiente virtual ativo):
 >
 > ```bash
@@ -66,10 +65,25 @@ Use esta opção para habilitar o servidor proxy do LiteLLM, que gerencia chaves
 
 Com o serviço do Ollama em execução localmente em sua máquina, vamos iniciar o proxy do LiteLLM apontando para o modelo local `qwen3:1.7b` (ou outro de sua escolha):
 
+##### Linux/macOS:
 ```bash
-(venv) litellm --model ollama/qwen3:1.7b \
-               --api_base http://localhost:11434 \
-               --port 4000
+litellm --model ollama/qwen3:1.7b \
+        --api_base http://localhost:11434 \
+        --port 4000
+```
+
+##### Windows (PowerShell):
+```powershell
+litellm --model ollama/qwen3:1.7b `
+        --api_base http://localhost:11434 `
+        --port 4000
+```
+
+##### Windows (CMD):
+```cmd
+litellm --model ollama/qwen3:1.7b ^
+        --api_base http://localhost:11434 ^
+        --port 4000
 ```
 
 > [!IMPORTANT]
@@ -85,8 +99,14 @@ Abra uma **nova janela do terminal** (ou use seu navegador) para testar se o Lit
 
 Solicite a lista de modelos disponíveis para garantir que o proxy está respondendo:
 
+##### Linux/macOS e Windows (CMD):
 ```bash
-~$ curl http://localhost:4000/v1/models
+curl http://localhost:4000/v1/models
+```
+
+##### Windows (PowerShell):
+```powershell
+Invoke-RestMethod -Uri http://localhost:4000/v1/models
 ```
 
 ##### Verificação via Navegador
@@ -100,10 +120,11 @@ Você também pode abrir o console administrativo e visualizador de rotas acessa
 
 Agora, vamos realizar nossa primeira chamada de geração de texto enviando uma pergunta para o modelo local através do proxy compatível com a API da OpenAI usando o terminal.
 
-Execute o seguinte comando em seu terminal:
+Execute o comando apropriado para o seu terminal/sistema:
 
+##### Linux/macOS:
 ```bash
-(venv) curl http://localhost:4000/v1/chat/completions \
+curl http://localhost:4000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer sk-YOUR_LITELLM_KEY" \
   -d '{
@@ -112,6 +133,32 @@ Execute o seguinte comando em seu terminal:
       {"role": "user", "content": "O que é LLM?"}
     ]
   }'
+```
+
+##### Windows (PowerShell):
+```powershell
+# Nota: Para evitar erros de codificação com caracteres especiais (como "é"), 
+# convertemos o corpo em string para um array de bytes UTF-8 antes de enviar.
+$body = '{"model": "ollama/qwen3:1.7b", "messages": [{"role": "user", "content": "O que é LLM?"}]}'
+$bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+
+$response = Invoke-RestMethod -Uri "http://localhost:4000/v1/chat/completions" `
+  -Method Post `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "Authorization" = "Bearer sk-YOUR_LITELLM_KEY"
+  } `
+  -Body $bodyBytes
+
+$response.choices[0].message.content
+```
+
+##### Windows (CMD):
+```cmd
+curl http://localhost:4000/v1/chat/completions ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer sk-YOUR_LITELLM_KEY" ^
+  -d "{\"model\": \"ollama/qwen3:1.7b\", \"messages\": [{\"role\": \"user\", \"content\": \"O que é LLM?\"}]}"
 ```
 
 > [!NOTE]
