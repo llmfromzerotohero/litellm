@@ -229,7 +229,7 @@ def main() -> None:
         traceback.print_exc()
 
     print("\n" + "=" * 60)
-    print(" Dica de Boas Práticas (Slide 10): Evite logar o corpo do prompt no")
+    print(" Dica de Boas Práticas: Evite logar o corpo do prompt no")
     print(" banco em produção para garantir conformidade de segurança e LGPD.")
     print("=" * 60)
 
