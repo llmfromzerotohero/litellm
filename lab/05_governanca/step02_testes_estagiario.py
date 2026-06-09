@@ -99,7 +99,7 @@ def main() -> None:
     print(f"Enviando POST para {chat_url}...")
     try:
         response = requests.post(chat_url, headers=headers, json=data_b, timeout=60)
-        print(f"Status HTTP: {response.status_code} (Esperado: 403)")
+        print(f"Status HTTP: {response.status_code}")
         try:
             payload = response.json()
             print("Resposta JSON de Erro:")
