@@ -1,6 +1,6 @@
 # 🎓 Laboratório 02: Configuração Multi-Backend com LiteLLM
 
-## Curso: LLM From Zero To Hero — Unidade 2
+## Curso: LLM From Zero To Hero — Unidade 3
 
 Neste laboratório, você aprenderá a configurar um ambiente híbrido e multi-backend utilizando o **LiteLLM**. Em cenários corporativos reais, as aplicações transitam entre modelos leves de desenvolvimento local, servidores de alta performance (como vLLM) e provedores comerciais na nuvem (como a OpenAI) para redundância e otimização.
 
@@ -8,39 +8,32 @@ Você aprenderá a centralizar, nomear e expor todos esses backends de forma uni
 
 ---
 
-### 📋 Pré-requisitos & Instalações
+### 📋 Pré-requisitos & Inicialização com Docker Compose
 
-#### 1. Ollama (Ambiente Local / Desenvolvimento)
+Neste laboratório, não é necessário instalar ou rodar o Ollama e o vLLM manualmente na máquina host. Todo o ambiente (incluindo o banco de dados PostgreSQL, Ollama, vLLM e o próprio LiteLLM Proxy) já está devidamente configurado e orquestrado via **Docker Compose** na pasta raiz `/config`.
 
-Certifique-se de que o Ollama está operacional em seu sistema.
+#### 1. Inicializar os Serviços via Docker Compose
 
-- **Instalação (se necessário):**
-  ```bash
-  ~$ curl -fsSL https://ollama.com | sh
-  ```
-- **Verificação de versão:**
-  ```bash
-  ~$ ollama --version
-  ```
-- **Download do modelo:**
-  Baixe o modelo leve localmente para garantir sua disponibilidade:
-  ```bash
-  ~$ ollama pull qwen3:1.7b
-  ```
+Abra o terminal, navegue até a pasta de configurações do projeto (`/config`) e inicie os containers em segundo plano:
 
----
+```bash
+docker compose up -d
+```
 
-#### 2. vLLM (Ambiente Otimizado / Produção)
+> [!NOTE]
+> Este comando iniciará os seguintes serviços integrados na mesma rede virtual:
+> - **PostgreSQL (`db`)** na porta `5432`
+> - **Ollama (`ollama`)** na porta `11434`
+> - **vLLM (`vllm`)** na porta `8000` (carregando o modelo `Qwen3.5-2B`)
+> - **LiteLLM Proxy (`litellm`)** na porta `4000`
 
-O **vLLM** é uma biblioteca de alta performance projetada para servir modelos localmente de forma extremamente rápida.
+#### 2. Baixar o Modelo no Ollama (dentro do Container)
 
-- **Inicialização do servidor compatível OpenAI com vLLM:**
-  Para subir o servidor do vLLM apontando para o modelo Qwen na porta `8000`, utilize:
-  ```bash
-  ~$ python -m vllm.entrypoints.openai.api_server \
-       --model meta-llama/Llama-3-8B \
-       --port 8000
-  ```
+Como o Ollama está rodando de forma isolada dentro de um container Docker, precisamos baixar o modelo `qwen3:1.7b` diretamente nele:
+
+```bash
+docker exec -it ollama-service ollama pull qwen3:1.7b
+```
 
 ---
 
@@ -48,7 +41,7 @@ O **vLLM** é uma biblioteca de alta performance projetada para servir modelos l
 
 #### Passo 1: O Arquivo de Configuração Central (`config.yaml`)
 
-A melhor prática absoluta para gerenciar múltiplos provedores e modelos é centralizá-los em um arquivo `config.yaml` unificado. Criamos o arquivo [config.yaml](config.yaml) na pasta deste laboratório com a seguinte definição:
+A melhor prática absoluta para gerenciar múltiplos provedores e modelos é centralizá-los em um arquivo `config.yaml` unificado. O arquivo local [config.yaml](config.yaml) contém a seguinte definição teórica de backends:
 
 ```yaml
 model_list:
@@ -72,27 +65,32 @@ model_list:
 ```
 
 > [!NOTE]
-> Usando `os.environ/OPENAI_API_KEY`, o LiteLLM lê automaticamente a credencial diretamente das variáveis de ambiente do seu sistema, evitando o vazamento de chaves secretas no código.
+> Os endereços de `api_base` (`http://ollama:11434` e `http://vllm:8000/v1`) utilizam os nomes dos serviços definidos no Docker Compose. A comunicação entre os containers ocorre de maneira interna e automática.
 
 ---
 
-#### Passo 2: Iniciando o LiteLLM Proxy com o arquivo de configuração
+#### Passo 2: O LiteLLM Proxy no Docker Compose
 
-Em vez de passar parâmetros gigantescos na linha de comando, inicie o proxy apontando diretamente para o arquivo de configuração:
+Como o LiteLLM Proxy já foi iniciado automaticamente pelo Docker Compose, ele estará escutando na porta `4000` do seu host (mapeada para a porta interna do container) e carregando as configurações definidas no arquivo `/config/config.yaml` global.
 
-```bash
-(venv) litellm --config config.yaml --port 4000
-```
+> [!TIP]
+> Caso queira executar o LiteLLM de forma manual e local fora do Docker (apenas para testar o arquivo `config.yaml` específico deste laboratório no terminal), certifique-se de ajustar os endereços de `api_base` para `localhost` (ex: `http://localhost:11434` e `http://localhost:8000/v1`), pois as URLs de rede interna do Docker (`http://ollama` e `http://vllm`) não resolvem no host. Para rodar localmente no terminal:
+> ```bash
+> (venv) litellm --config config.yaml --port 4000
+> ```
 
 ---
 
 #### Passo 3: Testando a Integração com o Ollama (Desenvolvimento)
 
-Com o LiteLLM Proxy rodando na porta 4000, envie uma requisição para o modelo de desenvolvimento (`qwen3:1.7b`):
+Com o ambiente ativo, envie uma requisição para o modelo de desenvolvimento (`qwen3:1.7b`) usando o LiteLLM Proxy (porta 4000). 
 
+Escolha o comando correspondente ao seu terminal/sistema operacional:
+
+##### Linux/macOS:
 ```bash
-~$ curl http://localhost:4000/v1/chat/completions \
-  -H "Authorization: Bearer sk-local" \
+curl http://localhost:4000/v1/chat/completions \
+  -H "Authorization: Bearer sk-master-1234" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen3:1.7b",
@@ -102,18 +100,43 @@ Com o LiteLLM Proxy rodando na porta 4000, envie uma requisição para o modelo 
   }'
 ```
 
+##### Windows (PowerShell):
+```powershell
+$body = '{"model": "qwen3:1.7b", "messages": [{"role": "user", "content": "Explique o que é IA Generativa"}]}'
+$bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+
+$response = Invoke-RestMethod -Uri "http://localhost:4000/v1/chat/completions" `
+  -Method Post `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "Authorization" = "Bearer sk-master-1234"
+  } `
+  -Body $bodyBytes
+
+$response.choices[0].message.content
+```
+
+##### Windows (CMD):
+```cmd
+curl http://localhost:4000/v1/chat/completions ^
+  -H "Authorization: Bearer sk-master-1234" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"model\": \"qwen3:1.7b\", \"messages\": [{\"role\": \"user\", \"content\": \"Explique o que é IA Generativa\"}]}"
+```
+
 > [!IMPORTANT]
-> **Camada de Abstração:** Observe que a aplicação que consome o modelo só conhece a porta `4000` (LiteLLM) e o nome lógico `"qwen3:1.7b"`. O acesso físico ao Ollama (`http://ollama:11434`) fica totalmente transparente e blindado da aplicação cliente.
+> **Camada de Abstração:** Observe que a aplicação consumidora só conhece a porta `4000` (LiteLLM) e o nome do modelo `"qwen3:1.7b"`. O acesso físico ao Ollama fica totalmente transparente e blindado da aplicação cliente.
 
 ---
 
 #### Passo 4: Testando a Integração com o vLLM (Produção)
 
-Teste a chamada simulada de produção que aponta para o servidor vLLM otimizado rodando localmente na porta `8000` (`qwen3.5:2b`):
+Teste a chamada simulada de produção que aponta para o servidor vLLM rodando localmente no container Docker (`qwen3.5:2b`):
 
+##### Linux/macOS:
 ```bash
-~$ curl http://localhost:4000/v1/chat/completions \
-  -H "Authorization: Bearer sk-local" \
+curl http://localhost:4000/v1/chat/completions \
+  -H "Authorization: Bearer sk-master-1234" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "qwen3.5:2b",
@@ -123,16 +146,46 @@ Teste a chamada simulada de produção que aponta para o servidor vLLM otimizado
   }'
 ```
 
+##### Windows (PowerShell):
+```powershell
+$body = '{"model": "qwen3.5:2b", "messages": [{"role": "user", "content": "Explique o que é RAG (Retrieval-Augmented Generation)"}]}'
+$bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+
+$response = Invoke-RestMethod -Uri "http://localhost:4000/v1/chat/completions" `
+  -Method Post `
+  -Headers @{
+    "Content-Type" = "application/json"
+    "Authorization" = "Bearer sk-master-1234"
+  } `
+  -Body $bodyBytes
+
+# Nota: Modelos de raciocínio (como o Qwen 3.5 com reasoning parser no vLLM)
+# retornam a resposta no campo 'reasoning_content' em vez de 'content'.
+if ($response.choices[0].message.content) {
+    $response.choices[0].message.content
+} else {
+    $response.choices[0].message.reasoning_content
+}
+```
+
+##### Windows (CMD):
+```cmd
+curl http://localhost:4000/v1/chat/completions ^
+  -H "Authorization: Bearer sk-master-1234" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"model\": \"qwen3.5:2b\", \"messages\": [{\"role\": \"user\", \"content\": \"Explique o que é RAG (Retrieval-Augmented Generation)\"}]}"
+```
+
 ---
 
 ### 🏆 Conclusão & Próximos Passos
 
-Você estruturou e implementou com sucesso um ambiente de orquestração multi-backend!
+Você estruturou e implementou com sucesso um ambiente de orquestração multi-backend utilizando Docker!
 
 Agora você compreende como:
 
 1. Declarar múltiplos modelos e diferentes provedores (Ollama, vLLM e OpenAI) sob aliases lógicos.
-2. Inicializar o LiteLLM Proxy a partir de um arquivo estruturado `config.yaml`.
-3. Oferecer aos seus clientes uma única API padronizada contendo rotas de desenvolvimento, produção e segurança.
+2. Inicializar toda a infraestrutura do LiteLLM Proxy em conjunto com os backends via Docker Compose.
+3. Consumir de forma centralizada rotas de desenvolvimento e produção com chaves seguras (Master Key).
 
 No próximo laboratório, avançaremos para o **Roteamento Inteligente e Políticas de Fallback** automático caso um desses servidores fique indisponível!
